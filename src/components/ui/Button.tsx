@@ -3,17 +3,25 @@ import { cn } from "@/lib/utils";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
+  variant?: "primary" | "secondary" | "destructive";
+  size?: "l" | "s";
 };
 
 export default function Button({
   children,
   className,
+  variant = "primary",
+  size = "l",
   ...props
 }: ButtonProps) {
   return (
     <button
       className={cn(
-        "rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90",
+        "btn",
+        size === "l" ? "btn-l" : "btn-s",
+        variant === "primary" && "btn-primary hover:btn-primary-hover",
+        variant === "secondary" && "btn-secondary hover:btn-secondary-hover",
+        variant === "destructive" && "btn-danger hover:btn-danger-hover",
         className
       )}
       {...props}
