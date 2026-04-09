@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/supabase/auth";
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     );
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Phase 1: move all tasks to unique temp positions to avoid (columnId, position) collisions.
     for (let i = 0; i < updates.length; i++) {
       const u = updates[i]!;
