@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import ThemeSwitch from "@/components/ui/ThemeSwitch";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type BoardsSidebarProps = {
   boards: { id: string; name: string }[];
@@ -17,8 +19,10 @@ export default function BoardsSidebar({
   onCreateBoardClick,
   onHideSidebar,
 }: BoardsSidebarProps) {
+  const router = useRouter();
+
   return (
-    <aside className="surface hidden h-screen w-[260px] shrink-0 flex-col border-r border-token md:flex">
+    <aside className="surface hidden h-screen w-[260px] shrink-0 flex-col border-r border-token md:sticky md:top-0 md:flex">
       <div className="flex items-center gap-3 px-6 py-6">
         <img
           src="/logos/logo-mobile.svg"
@@ -68,6 +72,18 @@ export default function BoardsSidebar({
         >
           <span aria-hidden>+</span>
           <span> Create New Board</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={async () => {
+            const supabase = createSupabaseBrowserClient();
+            await supabase.auth.signOut();
+            router.push("/login");
+          }}
+          className="mt-1 flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold text-(--color-danger) transition-colors hover:bg-(--color-surface-2)"
+        >
+          <span>Logout</span>
         </button>
       </nav>
 

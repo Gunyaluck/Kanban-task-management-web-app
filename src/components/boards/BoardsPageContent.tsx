@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import BoardEmptyState from "./BoardEmptyState";
 import KanbanBoard from "./KanbanBoard";
@@ -11,7 +11,7 @@ import DeleteTaskModal from "@/components/task/DeleteTaskModal";
 import EditTaskModal from "@/components/task/EditTaskModal";
 import type { EditTaskPayload } from "@/components/task/EditTaskModal";
 import ViewTaskModal from "@/components/task/ViewTaskModal";
-import MobileNavbar from "@/components/nav/MobileNavbar";
+import Navbar from "@/components/nav/Navbar";
 import BoardsSidebar from "@/components/nav/BoardsSidebar";
 import DeleteBoardModal from "@/components/board/DeleteBoardModal";
 import EditBoardModal from "@/components/board/EditBoardModal";
@@ -19,10 +19,25 @@ import type { EditBoardPayload } from "@/components/board/EditBoardModal";
 import AddBoardModal from "@/components/board/AddBoardModal";
 import type { AddBoardPayload } from "@/components/board/AddBoardModal";
 import {
-  SAMPLE_COLUMNS,
   type BoardTask,
   type ColumnDefinition,
 } from "./boardData";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createBoard,
+  createColumn,
+  createTask,
+  deleteBoard,
+  deleteColumn,
+  deleteTask,
+  getBoard,
+  listBoards,
+  patchBoard,
+  patchColumn,
+  patchSubtask,
+  reorderTasks,
+  patchTask,
+} from "@/lib/api/client";
 
 type ViewTaskState = {
   task: BoardTask;
@@ -33,26 +48,37 @@ type ViewTaskState = {
 
 const CORE_STATUSES = ["Todo", "Doing", "Done"] as const;
 
-const SAMPLE_BOARDS = [
-  { id: "platform-launch", name: "Platform Launch" },
-  { id: "marketing-plan", name: "Marketing Plan" },
-  { id: "roadmap", name: "Roadmap" },
-] as const;
+function mapBoardToColumns(res: Awaited<ReturnType<typeof getBoard>>) {
+  const getDotClassName = (title: string) => {
+    const t = title.trim().toLowerCase();
+    if (t === "todo") return "bg-(--col-dot-cyan)";
+    if (t === "doing") return "bg-(--col-dot-purple)";
+    if (t === "done") return "bg-(--col-dot-green)";
+    return "bg-(--color-text-muted)";
+  };
 
-function cloneBoard(source: ColumnDefinition[]): ColumnDefinition[] {
-  return source.map((c) => ({
-    ...c,
-    tasks: c.tasks.map((t) => ({
-      ...t,
-      subtasks: t.subtasks?.map((s) => ({ ...s })),
+  return res.board.columns.map((col) => ({
+    id: col.id,
+    title: col.name,
+    dotClassName: col.color ?? getDotClassName(col.name),
+    tasks: col.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      completedSubtasks: t.subtasks?.filter((s) => s.isCompleted).length ?? 0,
+      totalSubtasks: t.subtasks?.length ?? 0,
+      description: t.description ?? undefined,
+      subtasks: t.subtasks?.map((s) => ({
+        id: s.id,
+        label: s.title,
+        done: s.isCompleted,
+      })),
     })),
-  }));
+  })) satisfies ColumnDefinition[];
 }
 
 export default function BoardsPageContent() {
-  const [boards, setBoards] = useState<{ id: string; name: string }[]>([
-    ...SAMPLE_BOARDS,
-  ]);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [boards, setBoards] = useState<{ id: string; name: string }[]>([]);
   const [columns, setColumns] = useState<ColumnDefinition[] | null>(null);
   const [viewTask, setViewTask] = useState<ViewTaskState | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -61,148 +87,184 @@ export default function BoardsPageContent() {
   const [deleteBoardOpen, setDeleteBoardOpen] = useState(false);
   const [editBoardOpen, setEditBoardOpen] = useState(false);
   const [addBoardOpen, setAddBoardOpen] = useState(false);
-  const [boardName, setBoardName] = useState("Platform Launch");
-  const [activeBoardId, setActiveBoardId] = useState("platform-launch");
+  const [boardName, setBoardName] = useState("Board");
+  const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loadingBoard, setLoadingBoard] = useState(false);
+  const [loadingBoards, setLoadingBoards] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const viewTaskRef = useRef<ViewTaskState | null>(null);
   const columnsRef = useRef<ColumnDefinition[] | null>(null);
 
   viewTaskRef.current = viewTask;
   columnsRef.current = columns;
 
-  const showSampleBoard = useCallback(() => {
-    setColumns(cloneBoard(SAMPLE_COLUMNS));
-  }, []);
+  const refreshBoards = useCallback(
+    async (token: string) => {
+      setLoadingBoards(true);
+      setLoadError(null);
+      try {
+        const res = await listBoards(token);
+        const nextBoards = res.boards.map((b) => ({ id: b.id, name: b.name }));
+        setBoards(nextBoards);
+        return nextBoards;
+      } catch (e) {
+        setBoards([]);
+        setColumns(null);
+        setActiveBoardId(null);
+        setBoardName("Board");
+        setLoadError(e instanceof Error ? e.message : "Failed to load boards");
+        return [];
+      } finally {
+        setLoadingBoards(false);
+      }
+    },
+    []
+  );
+
+  const refreshActiveBoard = useCallback(
+    async (token: string, boardId: string) => {
+      setLoadingBoard(true);
+      setLoadError(null);
+      try {
+        const res = await getBoard(token, boardId);
+        setBoardName(res.board.name);
+        setColumns(mapBoardToColumns(res));
+      } catch (e) {
+        setColumns(null);
+        setLoadError(e instanceof Error ? e.message : "Failed to load board");
+      } finally {
+        setLoadingBoard(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token ?? null;
+      if (cancelled) return;
+
+      setAccessToken(token);
+      if (!token) {
+        setBoards([]);
+        setColumns(null);
+        setActiveBoardId(null);
+        setBoardName("Board");
+        setLoadError("You are not logged in.");
+        return;
+      }
+
+      const nextBoards = await refreshBoards(token);
+      if (cancelled) return;
+
+      const nextActive = nextBoards[0]?.id ?? null;
+      setActiveBoardId(nextActive);
+      if (nextActive) {
+        await refreshActiveBoard(token, nextActive);
+      } else {
+        setColumns([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshActiveBoard, refreshBoards]);
 
   const handleAddColumn = useCallback(() => {
-    setColumns((prev) => {
-      const next = prev ?? [];
-      return [
-        ...next,
-        {
-          id: `col-${Date.now()}`,
-          title: "New",
-          dotClassName: "bg-(--color-text-muted)",
-          tasks: [],
-        },
-      ];
+    const token = accessToken;
+    const boardId = activeBoardId;
+    if (!token || !boardId) return;
+
+    (async () => {
+      const position = columnsRef.current?.length ?? 0;
+      await createColumn(token, boardId, {
+        name: "New Column",
+        color: "bg-(--color-text-muted)",
+        position,
+      });
+      await refreshActiveBoard(token, boardId);
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to add column");
     });
-  }, []);
+  }, [accessToken, activeBoardId, refreshActiveBoard]);
 
   const handleTaskStatusChange = useCallback((nextTitle: string) => {
     const v = viewTaskRef.current;
     const cols = columnsRef.current;
-    if (!v || !cols || v.statusLabel === nextTitle) {
+    const token = accessToken;
+    if (!v || !cols || v.statusLabel === nextTitle || !token) {
       return;
     }
 
-    const next = cols.map((c) => ({ ...c, tasks: [...c.tasks] }));
-    const fromI = next.findIndex((c) => c.id === v.columnId);
-    const toI = next.findIndex((c) => c.title === nextTitle);
-    if (fromI === -1 || toI === -1) {
-      return;
-    }
+    const taskId = v.task.id;
+    const targetCol = cols.find((c) => c.title === nextTitle);
+    if (!taskId || !targetCol) return;
 
-    const fromTasks = next[fromI].tasks;
-    if (v.taskIndex < 0 || v.taskIndex >= fromTasks.length) {
-      return;
-    }
-
-    const [moved] = fromTasks.splice(v.taskIndex, 1);
-    next[toI].tasks.push(moved);
-    const newColumnId = next[toI].id;
-    const newTaskIndex = next[toI].tasks.length - 1;
-
-    setColumns(next);
-    setViewTask({
-      ...v,
-      task: moved,
-      statusLabel: nextTitle,
-      columnId: newColumnId,
-      taskIndex: newTaskIndex,
+    (async () => {
+      const nextPosition = targetCol.tasks.length;
+      await patchTask(token, taskId, { columnId: targetCol.id, position: nextPosition });
+      if (activeBoardId) {
+        await refreshActiveBoard(token, activeBoardId);
+      }
+      setViewTask(null);
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to move task");
     });
-  }, []);
+  }, [accessToken, activeBoardId, refreshActiveBoard]);
 
   const handleDeleteTask = useCallback(() => {
     const v = viewTaskRef.current;
-    if (!v) {
+    const token = accessToken;
+    if (!v || !token) {
       return;
     }
-    setColumns((cols) => {
-      if (!cols) {
-        return cols;
+    const taskId = v.task.id;
+    if (!taskId) return;
+
+    (async () => {
+      await deleteTask(token, taskId);
+      if (activeBoardId) {
+        await refreshActiveBoard(token, activeBoardId);
       }
-      const next = cloneBoard(cols);
-      const col = next.find((c) => c.id === v.columnId);
-      if (!col) {
-        return cols;
-      }
-      if (v.taskIndex < 0 || v.taskIndex >= col.tasks.length) {
-        return cols;
-      }
-      col.tasks.splice(v.taskIndex, 1);
-      return next;
+      setViewTask(null);
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to delete task");
     });
-    setViewTask(null);
-  }, []);
+  }, [accessToken, activeBoardId, refreshActiveBoard]);
 
   const handleSaveEditTask = useCallback((payload: EditTaskPayload) => {
     const v = viewTaskRef.current;
-    if (!v) {
+    const token = accessToken;
+    const cols = columnsRef.current;
+    if (!v || !token || !cols) {
       return;
     }
 
-    setColumns((cols) => {
-      if (!cols) {
-        return cols;
-      }
-      const next = cloneBoard(cols);
-      const fromI = next.findIndex((c) => c.id === v.columnId);
-      const toI = next.findIndex((c) => c.title === payload.status);
-      if (fromI === -1 || toI === -1) {
-        return cols;
-      }
+    const taskId = v.task.id;
+    const targetCol = cols.find((c) => c.title === payload.status);
+    if (!taskId || !targetCol) return;
 
-      const fromTasks = next[fromI].tasks;
-      if (v.taskIndex < 0 || v.taskIndex >= fromTasks.length) {
-        return cols;
-      }
-
-      const updated: BoardTask = {
+    (async () => {
+      await patchTask(token, taskId, {
         title: payload.title,
-        completedSubtasks: 0,
-        totalSubtasks: payload.subtaskLabels.length,
-        description: payload.description || undefined,
-      };
-      if (payload.subtaskLabels.length > 0) {
-        updated.subtasks = payload.subtaskLabels.map((label, i) => ({
-          id: `edit-${Date.now()}-${i}`,
-          label,
-          done: false,
-        }));
-      }
-
-      // Remove old
-      fromTasks.splice(v.taskIndex, 1);
-      // Add to target
-      next[toI].tasks.push(updated);
-
-      // Keep viewTask in sync so ViewTaskModal shows updated content after save
-      const newColumnId = next[toI].id;
-      const newTaskIndex = next[toI].tasks.length - 1;
-      setViewTask({
-        ...v,
-        task: updated,
-        statusLabel: payload.status,
-        columnId: newColumnId,
-        taskIndex: newTaskIndex,
+        description: payload.description || null,
+        columnId: targetCol.id,
       });
-
-      return next;
+      if (activeBoardId) {
+        await refreshActiveBoard(token, activeBoardId);
+      }
+      setEditTaskOpen(false);
+      setViewTask(null);
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to save task");
     });
-
-    setEditTaskOpen(false);
-  }, []);
+  }, [accessToken, activeBoardId, refreshActiveBoard]);
 
   const statusOptionsForAdd = useMemo(() => {
     if (!columns) {
@@ -215,106 +277,144 @@ export default function BoardsPageContent() {
   }, [columns]);
 
   const handleCreateTask = useCallback((payload: NewTaskPayload) => {
-    setColumns((prev) => {
-      const base = prev ? cloneBoard(prev) : cloneBoard(SAMPLE_COLUMNS);
-      const col = base.find((c) => c.title === payload.status);
-      if (!col) {
-        return base;
-      }
-      const total = payload.subtaskLabels.length;
-      const newTask: BoardTask = {
+    const token = accessToken;
+    const boardId = activeBoardId;
+    const cols = columnsRef.current;
+    if (!token || !boardId || !cols) return;
+
+    const col = cols.find((c) => c.title === payload.status);
+    if (!col) return;
+
+    (async () => {
+      await createTask(token, {
+        columnId: col.id,
         title: payload.title,
-        completedSubtasks: 0,
-        totalSubtasks: total,
-        description: payload.description || undefined,
-      };
-      if (total > 0) {
-        newTask.subtasks = payload.subtaskLabels.map((label, i) => ({
-          id: `new-${Date.now()}-${i}`,
-          label,
-          done: false,
-        }));
-      }
-      col.tasks.push(newTask);
-      return base;
+        description: payload.description || null,
+        subtasks: payload.subtaskLabels.map((title, idx) => ({
+          title,
+          position: idx,
+        })),
+        position: col.tasks.length,
+      });
+      await refreshActiveBoard(token, boardId);
+      setAddTaskOpen(false);
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to create task");
     });
-    setAddTaskOpen(false);
-  }, []);
+  }, [accessToken, activeBoardId, refreshActiveBoard]);
 
   const handleSaveEditBoard = useCallback((payload: EditBoardPayload) => {
-    setBoardName(payload.boardName);
-    setColumns((prev) => {
-      if (!prev) {
-        return prev;
-      }
+    const token = accessToken;
+    const boardId = activeBoardId;
+    const prevCols = columnsRef.current;
+    if (!token || !boardId || !prevCols) return;
 
-      const next = cloneBoard(prev);
-      const titles = payload.columnTitles;
+    (async () => {
+      await patchBoard(token, boardId, { name: payload.boardName });
 
-      // Keep/relabel existing columns by index; dropped columns are removed (and their tasks are removed too)
-      const kept = next.slice(0, titles.length).map((col, idx) => ({
-        ...col,
-        title: titles[idx]!,
+      const nextCols = payload.columns.map((c, idx) => ({
+        name: c.title,
+        color: c.dotClassName,
+        position: idx,
       }));
 
-      // Add new empty columns if user added more titles than existing columns
-      for (let i = kept.length; i < titles.length; i++) {
-        kept.push({
-          id: `col-${Date.now()}-${i}`,
-          title: titles[i]!,
-          dotClassName: "bg-(--color-text-muted)",
-          tasks: [],
+      // Update existing columns by index
+      for (let i = 0; i < Math.min(prevCols.length, nextCols.length); i++) {
+        await patchColumn(token, prevCols[i]!.id, {
+          name: nextCols[i]!.name,
+          color: nextCols[i]!.color,
+          position: nextCols[i]!.position,
         });
       }
 
-      return kept;
+      // Delete extra columns
+      for (let i = nextCols.length; i < prevCols.length; i++) {
+        await deleteColumn(token, prevCols[i]!.id);
+      }
+
+      // Create new columns
+      for (let i = prevCols.length; i < nextCols.length; i++) {
+        await createColumn(token, boardId, nextCols[i]!);
+      }
+
+      await refreshBoards(token);
+      await refreshActiveBoard(token, boardId);
+      setEditBoardOpen(false);
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to save board");
     });
-    setEditBoardOpen(false);
-  }, []);
+  }, [accessToken, activeBoardId, refreshActiveBoard, refreshBoards]);
 
   const handleConfirmDeleteBoard = useCallback(() => {
-    setColumns(null);
-    setViewTask(null);
-    setAddTaskOpen(false);
-    setDeleteTaskOpen(false);
-    setEditTaskOpen(false);
-    setDeleteBoardOpen(false);
-    setEditBoardOpen(false);
-  }, []);
+    const token = accessToken;
+    const boardId = activeBoardId;
+    if (!token || !boardId) return;
+
+    (async () => {
+      await deleteBoard(token, boardId);
+      const nextBoards = await refreshBoards(token);
+      const nextActive = nextBoards[0]?.id ?? null;
+      setActiveBoardId(nextActive);
+      setViewTask(null);
+      setAddTaskOpen(false);
+      setDeleteTaskOpen(false);
+      setEditTaskOpen(false);
+      setDeleteBoardOpen(false);
+      setEditBoardOpen(false);
+      if (nextActive) {
+        await refreshActiveBoard(token, nextActive);
+      } else {
+        setColumns([]);
+        setBoardName("Board");
+      }
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to delete board");
+    });
+  }, [accessToken, activeBoardId, refreshActiveBoard, refreshBoards]);
 
   const handleCreateBoard = useCallback((payload: AddBoardPayload) => {
-    const id = `board-${Date.now()}`;
-    setBoards((prev) => [...prev, { id, name: payload.boardName }]);
-    setActiveBoardId(id);
-    setBoardName(payload.boardName);
-    setViewTask(null);
-    setColumns(
-      payload.columnTitles.length
-        ? payload.columnTitles.map((t, i) => ({
-            id: `col-${Date.now()}-${i}`,
-            title: t,
-            dotClassName: "bg-(--color-text-muted)",
-            tasks: [],
-          }))
-        : null
-    );
-    setAddBoardOpen(false);
-  }, []);
+    const token = accessToken;
+    if (!token) return;
+
+    (async () => {
+      const res = await createBoard(token, {
+        name: payload.boardName,
+        columns: payload.columns.map((c, idx) => ({
+          name: c.title,
+          color: c.dotClassName,
+          position: idx,
+        })),
+      });
+
+      const nextBoards = await refreshBoards(token);
+      // try to select the newest board (first in updatedAt desc) — otherwise fallback
+      const nextActive = nextBoards[0]?.id ?? null;
+      setActiveBoardId(nextActive);
+      setViewTask(null);
+      setAddBoardOpen(false);
+      if (nextActive) {
+        await refreshActiveBoard(token, nextActive);
+      } else {
+        setColumns([]);
+      }
+      void res;
+    })().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to create board");
+    });
+  }, [accessToken, refreshActiveBoard, refreshBoards]);
 
   return (
     <div className="flex min-h-screen w-full">
       {sidebarOpen ? (
         <BoardsSidebar
           boards={boards}
-          activeBoardId={activeBoardId}
+          activeBoardId={activeBoardId ?? ""}
           onBoardSelect={(boardId) => {
+            const token = accessToken;
+            if (!token) return;
             setActiveBoardId(boardId);
-            const b = boards.find((x) => x.id === boardId);
-            setBoardName(b?.name ?? "Board");
             setViewTask(null);
-            setColumns(
-              boardId === "platform-launch" ? cloneBoard(SAMPLE_COLUMNS) : null
-            );
+            void refreshActiveBoard(token, boardId);
           }}
           onCreateBoardClick={() => setAddBoardOpen(true)}
           onHideSidebar={() => setSidebarOpen(false)}
@@ -326,19 +426,17 @@ export default function BoardsPageContent() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNavbar
+        <Navbar
           title={boardName}
           boards={boards}
-          activeBoardId={activeBoardId}
+          activeBoardId={activeBoardId ?? ""}
           showDesktopBrand={!sidebarOpen}
           onBoardSelect={(boardId) => {
+            const token = accessToken;
+            if (!token) return;
             setActiveBoardId(boardId);
-            const b = boards.find((x) => x.id === boardId);
-            setBoardName(b?.name ?? "Board");
             setViewTask(null);
-            setColumns(
-              boardId === "platform-launch" ? cloneBoard(SAMPLE_COLUMNS) : null
-            );
+            void refreshActiveBoard(token, boardId);
           }}
           onCreateBoardClick={() => setAddBoardOpen(true)}
           onAddTaskClick={() => setAddTaskOpen(true)}
@@ -346,12 +444,63 @@ export default function BoardsPageContent() {
           onDeleteBoardClick={() => setDeleteBoardOpen(true)}
         />
 
-        {columns === null ? (
-          <BoardEmptyState onAddColumn={showSampleBoard} />
+        {loadError ? (
+          <div className="px-4 py-6 text-(--color-danger) text-sm font-medium">
+            {loadError}
+          </div>
+        ) : loadingBoards || loadingBoard ? (
+          <section className="grid min-h-[calc(100vh-64px)] place-items-center px-4">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-token border-t-(--color-primary)" />
+              <p className="text-muted text-sm font-medium">
+                Loading board…
+              </p>
+            </div>
+          </section>
+        ) : columns === null || columns.length === 0 ? (
+          <BoardEmptyState onAddColumn={handleAddColumn} />
         ) : (
           <KanbanBoard
             columns={columns}
             onAddColumn={handleAddColumn}
+            onMoveTask={({ taskId, fromColumnId, toColumnId, toIndex }) => {
+              const token = accessToken;
+              const boardId = activeBoardId;
+              const cols = columnsRef.current;
+              if (!token || !boardId || !cols) return;
+
+              // Build next columns state (optimistic)
+              const next = cols.map((c) => ({ ...c, tasks: [...c.tasks] }));
+              const fromCol = next.find((c) => c.id === fromColumnId);
+              const toCol = next.find((c) => c.id === toColumnId);
+              if (!fromCol || !toCol) return;
+
+              const fromIndex = fromCol.tasks.findIndex((t) => t.id === taskId);
+              if (fromIndex === -1) return;
+
+              const [moved] = fromCol.tasks.splice(fromIndex, 1);
+              const safeIndex = Math.max(0, Math.min(toIndex, toCol.tasks.length));
+              toCol.tasks.splice(safeIndex, 0, moved);
+
+              setColumns(next);
+
+              const updates: { taskId: string; columnId: string; position: number }[] =
+                [];
+              for (const c of next) {
+                if (c.id !== fromColumnId && c.id !== toColumnId) continue;
+                c.tasks.forEach((t, idx) => {
+                  updates.push({ taskId: t.id, columnId: c.id, position: idx });
+                });
+              }
+
+              void reorderTasks(token, updates)
+                .then(() => refreshActiveBoard(token, boardId))
+                .catch((e) =>
+                  setLoadError(
+                    e instanceof Error ? e.message : "Failed to reorder tasks"
+                  )
+                );
+            }}
             onTaskClick={(task, statusLabel, columnId, taskIndex) =>
               setViewTask({ task, statusLabel, columnId, taskIndex })
             }
@@ -365,6 +514,53 @@ export default function BoardsPageContent() {
         statusLabel={viewTask?.statusLabel ?? ""}
         statusOptions={["Todo", "Doing", "Done"]}
         onStatusChange={handleTaskStatusChange}
+        onToggleSubtask={(subtaskId, nextDone) => {
+          const token = accessToken;
+          const boardId = activeBoardId;
+          if (!token || !boardId) return;
+
+          // Optimistic UI update
+          setViewTask((prev) => {
+            if (!prev?.task.subtasks?.length) return prev;
+            const next = {
+              ...prev,
+              task: {
+                ...prev.task,
+                subtasks: prev.task.subtasks.map((s) =>
+                  s.id === subtaskId ? { ...s, done: nextDone } : s
+                ),
+              },
+            };
+            return next;
+          });
+          setColumns((prev) => {
+            if (!prev) return prev;
+            return prev.map((c) => ({
+              ...c,
+              tasks: c.tasks.map((t) => {
+                if (t.id !== viewTaskRef.current?.task.id) return t;
+                if (!t.subtasks?.length) return t;
+                const nextSubtasks = t.subtasks.map((s) =>
+                  s.id === subtaskId ? { ...s, done: nextDone } : s
+                );
+                return {
+                  ...t,
+                  subtasks: nextSubtasks,
+                  completedSubtasks: nextSubtasks.filter((s) => s.done).length,
+                  totalSubtasks: nextSubtasks.length,
+                };
+              }),
+            }));
+          });
+
+          void patchSubtask(token, subtaskId, { isCompleted: nextDone })
+            .then(() => refreshActiveBoard(token, boardId))
+            .catch((e) =>
+              setLoadError(
+                e instanceof Error ? e.message : "Failed to update subtask"
+              )
+            );
+        }}
         onEditTask={() => setEditTaskOpen(true)}
         onDeleteTask={() => setDeleteTaskOpen(true)}
       />
