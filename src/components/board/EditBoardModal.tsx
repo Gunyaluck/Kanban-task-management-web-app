@@ -192,7 +192,7 @@ export default function EditBoardModal({
                     onValueChange={(value) => updateColumnDotColor(index, value)}
                   >
                     <SelectTrigger
-                      className="h-10 w-[140px] shrink-0 px-3 py-2"
+                      className="h-10 w-[140px] shrink-0 px-3 py-2 hover:cursor-pointer"
                       aria-label={`Column color ${index + 1}`}
                     >
                       <span className="flex min-w-0 items-center gap-2">
@@ -221,7 +221,7 @@ export default function EditBoardModal({
                   </Select>
                   <button
                     type="button"
-                    className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80"
+                    className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80 hover:cursor-pointer"
                     aria-label={`Remove column ${index + 1}`}
                     onClick={() => removeColumnRow(index)}
                   >
@@ -238,7 +238,7 @@ export default function EditBoardModal({
             </ul>
             <button
               type="button"
-              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90"
+              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90 hover:cursor-pointer"
               onClick={addColumnRow}
             >
               + Add New Column
@@ -247,7 +247,7 @@ export default function EditBoardModal({
 
           <button
             type="submit"
-            className="btn btn-l btn-primary hover:btn-primary-hover w-full"
+            className="btn btn-l btn-primary hover:btn-primary-hover w-full mx-auto hover:cursor-pointer"
           >
             Save Changes
           </button>

@@ -53,12 +53,37 @@ export default function EditTaskModal({
   const [subtaskDrafts, setSubtaskDrafts] = useState<string[]>([]);
   const [nextStatus, setNextStatus] = useState(statusOptions[0] ?? "Todo");
 
+  const normalizeStatus = (value: string) => value.trim();
+
   const normalizedStatusOptions = useMemo(() => {
-    if (status && !statusOptions.includes(status)) {
-      return [status, ...statusOptions];
-    }
-    return statusOptions;
+    const base = statusOptions.map(normalizeStatus).filter(Boolean);
+    const current = normalizeStatus(status || "");
+    const all = current && !base.includes(current) ? [current, ...base] : base;
+    // de-dupe
+    return Array.from(new Set(all));
   }, [status, statusOptions]);
+
+  const selectOptions = useMemo(() => {
+    const next = normalizeStatus(nextStatus || "");
+    if (next && !normalizedStatusOptions.includes(next)) {
+      return [next, ...normalizedStatusOptions];
+    }
+    return normalizedStatusOptions;
+  }, [nextStatus, normalizedStatusOptions]);
+
+  const safeStatusValue = useMemo(() => {
+    const current = normalizeStatus(status || "");
+    if (current && selectOptions.includes(current)) {
+      return current;
+    }
+    return selectOptions[0] || "Todo";
+  }, [selectOptions, status]);
+
+  const effectiveStatusValue = useMemo(() => {
+    const next = normalizeStatus(nextStatus || "");
+    if (next && selectOptions.includes(next)) return next;
+    return safeStatusValue;
+  }, [nextStatus, safeStatusValue, selectOptions]);
 
   useEffect(() => {
     if (!open) {
@@ -88,8 +113,8 @@ export default function EditTaskModal({
     setTitle(task.title);
     setDescription(task.description ?? "");
     setSubtaskDrafts(taskToDraftSubtasks(task));
-    setNextStatus(status);
-  }, [open, task, status]);
+    setNextStatus(normalizeStatus(status || selectOptions[0] || "Todo"));
+  }, [open, task, status, selectOptions]);
 
   if (!open || !task) {
     return null;
@@ -208,7 +233,7 @@ export default function EditTaskModal({
                   />
                   <button
                     type="button"
-                    className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80"
+                    className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80 hover:cursor-pointer"
                     aria-label={`Remove subtask ${index + 1}`}
                     onClick={() => removeSubtaskRow(index)}
                   >
@@ -225,7 +250,7 @@ export default function EditTaskModal({
             </ul>
             <button
               type="button"
-              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90"
+              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90 hover:cursor-pointer"
               onClick={addSubtaskRow}
             >
               + Add New Subtask
@@ -234,16 +259,16 @@ export default function EditTaskModal({
 
           <div className="flex flex-col gap-2">
             <span className="text-muted text-xs font-bold">Status</span>
-            <Select value={nextStatus} onValueChange={setNextStatus}>
+            <Select value={effectiveStatusValue} onValueChange={setNextStatus}>
               <SelectTrigger
                 id="edit-task-status"
-                className="w-full"
+                className="w-full hover:cursor-pointer"
                 aria-label="Task status"
               >
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {normalizedStatusOptions.map((opt) => (
+                {selectOptions.map((opt) => (
                   <SelectItem key={opt} value={opt}>
                     {opt}
                   </SelectItem>
@@ -254,7 +279,7 @@ export default function EditTaskModal({
 
           <button
             type="submit"
-            className="btn btn-l btn-primary hover:btn-primary-hover w-full"
+            className="btn btn-l btn-primary hover:btn-primary-hover w-full mx-auto hover:cursor-pointer"
           >
             Save Changes
           </button>

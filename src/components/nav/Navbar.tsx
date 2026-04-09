@@ -141,7 +141,7 @@ export default function MobileNavbar({
       <div className="flex flex-row gap-4 items-center">
       <button
         type="button"
-        className="inline-flex h-8 w-12 items-center justify-center gap-2 rounded-full bg-(--color-primary) text-white transition-colors hover:bg-(--color-primary-hover) md:h-12 md:w-auto md:px-6"
+        className="inline-flex h-8 w-12 items-center justify-center gap-2 rounded-full bg-(--color-primary) text-white transition-colors hover:bg-(--color-primary-hover) md:h-12 md:w-auto md:px-6 hover:cursor-pointer"
         aria-label="Add new item"
         onClick={() => onAddTaskClick?.()}
       >
@@ -158,7 +158,7 @@ export default function MobileNavbar({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="text-muted hover:text-(--color-text) grid h-8 w-8 place-items-center rounded transition-colors outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2"
+            className="text-muted hover:text-(--color-text) grid h-8 w-8 place-items-center rounded transition-colors outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 hover:cursor-pointer"
             aria-label="Board options"
           >
             <img

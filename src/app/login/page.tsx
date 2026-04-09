@@ -76,7 +76,7 @@ export default function LoginPage() {
             Welcome back. Sign in to continue.
           </p>
 
-          <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4 ">
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-muted text-xs font-bold">
                 Email
@@ -132,7 +132,7 @@ export default function LoginPage() {
                     alt={showPassword ? "Hide password" : "Show password"}
                     width={18}
                     height={16}
-                    className="h-4 w-[18px]"
+                    className="h-4 w-[18px] hover:cursor-pointer"
                   />
                 </button>
               </div>
@@ -151,7 +151,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="btn btn-l btn-primary hover:btn-primary-hover w-full"
+              className="btn btn-l btn-primary hover:btn-primary-hover w-full mx-auto hover:cursor-pointer"
               disabled={loading}
             >
               {loading ? "Signing in…" : "Sign in"}

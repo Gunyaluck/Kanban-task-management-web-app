@@ -29,7 +29,7 @@ export default function ThemeSwitch() {
 
       <button
         type="button"
-        className="relative h-5 w-10 rounded-full bg-(--color-primary) transition-colors hover:bg-(--color-primary-hover) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2"
+        className="relative h-5 w-10 rounded-full bg-(--color-primary) transition-colors hover:bg-(--color-primary-hover) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 hover:cursor-pointer"
         aria-label="Toggle theme"
         aria-pressed={isDark}
         onClick={() => setTheme(isDark ? "light" : "dark")}
