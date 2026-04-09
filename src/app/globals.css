@@ -1,26 +1,164 @@
 @import "tailwindcss";
 
+/* Design system tokens (based on provided spec) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Typography */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji";
+
+  /* Palette */
+  --purple-500: #635fc7;
+  --purple-300: #a8a4ff;
+  --black-900: #000112;
+  --gray-800: #20212c;
+  --gray-700: #2b2c37;
+  --gray-600: #3e3f4e;
+  --gray-500: #828fa3;
+  --gray-200: #e4ebfa;
+  --gray-100: #f4f7fd;
+  --white: #ffffff;
+  --red-500: #ea5555;
+  --red-300: #ff9898;
+
+  /* Semantic tokens (Light) */
+  --color-bg: var(--gray-100);
+  --color-surface: var(--white);
+  --color-surface-2: var(--gray-200);
+  --color-text: var(--black-900);
+  --color-text-muted: var(--gray-500);
+  --color-border: var(--gray-200);
+
+  --color-primary: var(--purple-500);
+  --color-primary-hover: var(--purple-300);
+
+  --color-danger: var(--red-500);
+  --color-danger-hover: var(--red-300);
+
+  /* Radii */
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.5rem; /* 8px */
+  --radius-lg: 0.75rem; /* 12px */
+
+  /* Shadows */
+  --shadow-elev-1: 0 4px 6px rgba(54, 78, 126, 0.1015);
+
+  /* Column dot colors (fixed palette) */
+  --col-dot-cyan: #49c4e5;
+  --col-dot-purple: #8471f2;
+  --col-dot-green: #67e3ae;
+  --col-dot-orange: #f6c15d;
+  --col-dot-pink: #d746ff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  /* Semantic tokens (Dark) */
+  --color-bg: var(--gray-800);
+  --color-surface: var(--gray-700);
+  --color-surface-2: var(--gray-600);
+  --color-text: var(--white);
+  --color-text-muted: var(--gray-500);
+  --color-border: var(--gray-600);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Utilities (Tailwind-compatible; avoids unknown @utility rule) */
+@layer utilities {
+  .btn {
+    display: inline-flex;
+    user-select: none;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-weight: 700;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+    border-radius: 999;
+    outline: none;
+  }
+
+  .btn:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 4px var(--color-surface);
+  }
+
+  .btn:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .btn-l {
+    width: 15.75rem; /* w-63 */
+    height: 3rem; /* h-12 */
+    padding-inline: 1.5rem; /* px-6 */
+    font-size: 15px;
+  }
+
+  .btn-s {
+    width: 15.75rem; /* w-63 */
+    height: 2.5rem; /* h-10 */
+    padding-inline: 1.25rem; /* px-5 */
+    font-size: 13px;
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: var(--white);
+  }
+
+  .btn-primary-hover {
+    background: var(--color-primary-hover);
+  }
+
+  .btn-secondary {
+    background: var(--color-bg);
+    color: var(--color-primary);
+  }
+
+  .btn-secondary-hover {
+    background: var(--color-surface-2);
+    color: var(--color-primary);
+  }
+
+  .btn-danger {
+    background: var(--color-danger);
+    color: var(--white);
+  }
+
+  .btn-danger-hover {
+    background: var(--color-danger-hover);
+  }
+
+  .surface {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-elev-1);
+  }
+
+  .surface-2 {
+    background: var(--color-surface-2);
+  }
+
+  .border-token {
+    border-color: var(--color-border);
+  }
+
+  .text-muted {
+    color: var(--color-text-muted);
+  }
+}
+
+.dark .btn-secondary {
+  background: var(--white);
 }
