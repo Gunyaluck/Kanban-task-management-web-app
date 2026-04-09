@@ -70,14 +70,14 @@ export default function DeleteTaskModal({
         <div className="mt-6 flex flex-col gap-4 md:flex-row">
           <button
             type="button"
-            className="btn btn-l btn-danger hover:btn-danger-hover w-full"
+            className="btn btn-l btn-danger hover:btn-danger-hover w-full hover:cursor-pointer"
             onClick={onConfirm}
           >
             Delete
           </button>
           <button
             type="button"
-            className="btn btn-l btn-secondary hover:btn-secondary-hover w-full"
+            className="btn btn-l btn-secondary hover:btn-secondary-hover w-full hover:cursor-pointer"
             onClick={onCancel}
           >
             Cancel

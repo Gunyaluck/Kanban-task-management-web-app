@@ -37,7 +37,7 @@ import {
   patchSubtask,
   reorderTasks,
   patchTask,
-} from "@/lib/api/client";
+} from "@/services/kanban";
 
 type ViewTaskState = {
   task: BoardTask;
