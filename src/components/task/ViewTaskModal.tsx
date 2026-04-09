@@ -112,7 +112,7 @@ export default function ViewTaskModal({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="text-muted hover:text-(--color-text) shrink-0 rounded p-1 pt-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2"
+                  className="text-muted hover:text-(--color-text) shrink-0 rounded p-1 pt-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 hover:cursor-pointer"
                   aria-label="Task options"
                 >
                   <img
@@ -155,7 +155,7 @@ export default function ViewTaskModal({
                   <li key={item.id}>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-4 rounded-sm bg-[#F4F7FD] px-3 py-3 text-left transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 dark:bg-(--color-surface-2)"
+                      className="flex w-full items-center gap-4 rounded-sm bg-[#F4F7FD] px-3 py-3 text-left transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 dark:bg-(--color-surface-2) hover:cursor-pointer"
                       role="checkbox"
                       aria-checked={item.done}
                       aria-label={`Toggle subtask: ${item.label}`}
@@ -207,7 +207,7 @@ export default function ViewTaskModal({
               onValueChange={(next) => onStatusChange?.(next)}
               disabled={!onStatusChange}
             >
-              <SelectTrigger id="task-status-select" className="w-full">
+              <SelectTrigger id="task-status-select" className="w-full hover:cursor-pointer">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>

@@ -178,6 +178,7 @@ export async function patchTask(
     priority?: string | null;
     dueDate?: string | null;
     position?: number;
+    subtasks?: { title: string; isCompleted?: boolean; position?: number }[];
   }
 ) {
   return apiFetch<{ task: TaskDto }>(`/api/tasks/${taskId}`, {

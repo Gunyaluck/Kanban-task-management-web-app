@@ -201,7 +201,7 @@ export default function AddTaskModal({
             </ul>
             <button
               type="button"
-              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90"
+              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90 hover:cursor-pointer"
               onClick={addSubtaskRow}
             >
               + Add New Subtask
@@ -216,7 +216,7 @@ export default function AddTaskModal({
             >
               <SelectTrigger
                 id="add-task-status"
-                className="w-full"
+                className="w-full hover:cursor-pointer"
                 aria-label="Task status"
               >
                 <SelectValue placeholder="Select status" />
@@ -233,7 +233,7 @@ export default function AddTaskModal({
 
           <button
             type="submit"
-            className="btn btn-l btn-primary hover:btn-primary-hover w-full"
+            className="btn btn-l btn-primary hover:btn-primary-hover w-full mx-auto hover:cursor-pointer"
           >
             Create Task
           </button>

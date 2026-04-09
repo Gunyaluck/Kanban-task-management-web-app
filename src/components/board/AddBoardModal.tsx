@@ -177,7 +177,7 @@ export default function AddBoardModal({
                       id={`add-board-col-color-${index}`}
                       value={row.dotClassName}
                       onChange={(e) => updateColumnDotColor(index, e.target.value)}
-                      className="h-10 w-[116px] appearance-none rounded border border-token bg-(--color-surface) pl-10 pr-8 text-sm font-medium text-(--color-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2"
+                      className="h-10 w-[116px] appearance-none rounded border border-token bg-(--color-surface) pl-10 pr-8 text-sm font-medium text-(--color-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 hover:cursor-pointer"
                       aria-label={`Column color ${index + 1}`}
                     >
                       {DOT_COLORS.map((c) => (
@@ -199,7 +199,7 @@ export default function AddBoardModal({
                   </div>
                   <button
                     type="button"
-                    className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80"
+                    className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80 hover:cursor-pointer"
                     aria-label={`Remove column ${index + 1}`}
                     onClick={() => removeColumnRow(index)}
                   >
@@ -216,7 +216,7 @@ export default function AddBoardModal({
             </ul>
             <button
               type="button"
-              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90"
+              className="w-full rounded-md bg-(--color-surface-2) py-3 text-sm font-bold text-(--color-primary) transition-colors hover:opacity-90 hover:cursor-pointer"
               onClick={addColumnRow}
             >
               + Add New Column
@@ -225,7 +225,7 @@ export default function AddBoardModal({
 
           <button
             type="submit"
-            className="btn btn-l btn-primary hover:btn-primary-hover w-full"
+            className="btn btn-l btn-primary hover:btn-primary-hover w-full mx-auto hover:cursor-pointer"
           >
             Create New Board
           </button>

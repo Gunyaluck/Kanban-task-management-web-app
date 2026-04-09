@@ -33,6 +33,15 @@ const PatchTaskSchema = z
     priority: z.string().trim().optional().nullable(),
     dueDate: z.union([z.string().datetime(), z.null()]).optional(),
     position: z.number().int().nonnegative().optional(),
+    subtasks: z
+      .array(
+        z.object({
+          title: z.string().trim().min(1),
+          isCompleted: z.boolean().optional(),
+          position: z.number().int().nonnegative().optional(),
+        })
+      )
+      .optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Empty patch body" });
 
@@ -70,15 +79,34 @@ export async function PATCH(req: Request, { params }: Params) {
     }
   }
 
-  const { dueDate, ...rest } = parsed.data;
-  const task = await prisma.task.update({
-    where: { id: taskId },
-    data: {
-      ...rest,
-      ...(dueDate !== undefined
-        ? { dueDate: dueDate ? new Date(dueDate) : null }
-        : {}),
-    },
+  const { dueDate, subtasks, ...rest } = parsed.data;
+
+  const task = await prisma.$transaction(async (tx) => {
+    const updated = await tx.task.update({
+      where: { id: taskId },
+      data: {
+        ...rest,
+        ...(dueDate !== undefined
+          ? { dueDate: dueDate ? new Date(dueDate) : null }
+          : {}),
+      },
+    });
+
+    if (subtasks) {
+      await tx.subtask.deleteMany({ where: { taskId } });
+      if (subtasks.length > 0) {
+        await tx.subtask.createMany({
+          data: subtasks.map((s, idx) => ({
+            taskId,
+            title: s.title,
+            isCompleted: s.isCompleted ?? false,
+            position: s.position ?? idx,
+          })),
+        });
+      }
+    }
+
+    return updated;
   });
 
   return NextResponse.json({ task });

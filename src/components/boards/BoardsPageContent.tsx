@@ -78,6 +78,7 @@ function mapBoardToColumns(res: Awaited<ReturnType<typeof getBoard>>) {
 
 export default function BoardsPageContent() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const accessTokenRef = useRef<string | null>(null);
   const [boards, setBoards] = useState<{ id: string; name: string }[]>([]);
   const [columns, setColumns] = useState<ColumnDefinition[] | null>(null);
   const [viewTask, setViewTask] = useState<ViewTaskState | null>(null);
@@ -98,6 +99,12 @@ export default function BoardsPageContent() {
 
   viewTaskRef.current = viewTask;
   columnsRef.current = columns;
+  accessTokenRef.current = accessToken;
+
+  const viewTaskStatusFromColumn =
+    (viewTask?.columnId
+      ? columns?.find((c) => c.id === viewTask.columnId)?.title
+      : null) ?? null;
 
   const refreshBoards = useCallback(
     async (token: string) => {
@@ -150,6 +157,7 @@ export default function BoardsPageContent() {
       if (cancelled) return;
 
       setAccessToken(token);
+      accessTokenRef.current = token;
       if (!token) {
         setBoards([]);
         setColumns(null);
@@ -171,13 +179,21 @@ export default function BoardsPageContent() {
       }
     })();
 
+    const supabase = createSupabaseBrowserClient();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextToken = session?.access_token ?? null;
+      setAccessToken(nextToken);
+      accessTokenRef.current = nextToken;
+    });
+
     return () => {
       cancelled = true;
+      sub.subscription.unsubscribe();
     };
   }, [refreshActiveBoard, refreshBoards]);
 
   const handleAddColumn = useCallback(() => {
-    const token = accessToken;
+    const token = accessTokenRef.current;
     const boardId = activeBoardId;
     if (!token || !boardId) return;
 
@@ -197,7 +213,7 @@ export default function BoardsPageContent() {
   const handleTaskStatusChange = useCallback((nextTitle: string) => {
     const v = viewTaskRef.current;
     const cols = columnsRef.current;
-    const token = accessToken;
+    const token = accessTokenRef.current;
     if (!v || !cols || v.statusLabel === nextTitle || !token) {
       return;
     }
@@ -216,11 +232,11 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to move task");
     });
-  }, [accessToken, activeBoardId, refreshActiveBoard]);
+  }, [activeBoardId, refreshActiveBoard]);
 
   const handleDeleteTask = useCallback(() => {
     const v = viewTaskRef.current;
-    const token = accessToken;
+    const token = accessTokenRef.current;
     if (!v || !token) {
       return;
     }
@@ -236,11 +252,11 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to delete task");
     });
-  }, [accessToken, activeBoardId, refreshActiveBoard]);
+  }, [activeBoardId, refreshActiveBoard]);
 
   const handleSaveEditTask = useCallback((payload: EditTaskPayload) => {
     const v = viewTaskRef.current;
-    const token = accessToken;
+    const token = accessTokenRef.current;
     const cols = columnsRef.current;
     if (!v || !token || !cols) {
       return;
@@ -255,6 +271,10 @@ export default function BoardsPageContent() {
         title: payload.title,
         description: payload.description || null,
         columnId: targetCol.id,
+        subtasks: payload.subtaskLabels.map((title, idx) => ({
+          title,
+          position: idx,
+        })),
       });
       if (activeBoardId) {
         await refreshActiveBoard(token, activeBoardId);
@@ -264,7 +284,7 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to save task");
     });
-  }, [accessToken, activeBoardId, refreshActiveBoard]);
+  }, [activeBoardId, refreshActiveBoard]);
 
   const statusOptionsForAdd = useMemo(() => {
     if (!columns) {
@@ -277,7 +297,7 @@ export default function BoardsPageContent() {
   }, [columns]);
 
   const handleCreateTask = useCallback((payload: NewTaskPayload) => {
-    const token = accessToken;
+    const token = accessTokenRef.current;
     const boardId = activeBoardId;
     const cols = columnsRef.current;
     if (!token || !boardId || !cols) return;
@@ -301,10 +321,10 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to create task");
     });
-  }, [accessToken, activeBoardId, refreshActiveBoard]);
+  }, [activeBoardId, refreshActiveBoard]);
 
   const handleSaveEditBoard = useCallback((payload: EditBoardPayload) => {
-    const token = accessToken;
+    const token = accessTokenRef.current;
     const boardId = activeBoardId;
     const prevCols = columnsRef.current;
     if (!token || !boardId || !prevCols) return;
@@ -343,10 +363,10 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to save board");
     });
-  }, [accessToken, activeBoardId, refreshActiveBoard, refreshBoards]);
+  }, [activeBoardId, refreshActiveBoard, refreshBoards]);
 
   const handleConfirmDeleteBoard = useCallback(() => {
-    const token = accessToken;
+    const token = accessTokenRef.current;
     const boardId = activeBoardId;
     if (!token || !boardId) return;
 
@@ -370,10 +390,10 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to delete board");
     });
-  }, [accessToken, activeBoardId, refreshActiveBoard, refreshBoards]);
+  }, [activeBoardId, refreshActiveBoard, refreshBoards]);
 
   const handleCreateBoard = useCallback((payload: AddBoardPayload) => {
-    const token = accessToken;
+    const token = accessTokenRef.current;
     if (!token) return;
 
     (async () => {
@@ -401,7 +421,7 @@ export default function BoardsPageContent() {
     })().catch((e) => {
       setLoadError(e instanceof Error ? e.message : "Failed to create board");
     });
-  }, [accessToken, refreshActiveBoard, refreshBoards]);
+  }, [refreshActiveBoard, refreshBoards]);
 
   return (
     <div className="flex min-h-screen w-full">
@@ -410,7 +430,7 @@ export default function BoardsPageContent() {
           boards={boards}
           activeBoardId={activeBoardId ?? ""}
           onBoardSelect={(boardId) => {
-            const token = accessToken;
+            const token = accessTokenRef.current;
             if (!token) return;
             setActiveBoardId(boardId);
             setViewTask(null);
@@ -432,7 +452,7 @@ export default function BoardsPageContent() {
           activeBoardId={activeBoardId ?? ""}
           showDesktopBrand={!sidebarOpen}
           onBoardSelect={(boardId) => {
-            const token = accessToken;
+            const token = accessTokenRef.current;
             if (!token) return;
             setActiveBoardId(boardId);
             setViewTask(null);
@@ -464,7 +484,7 @@ export default function BoardsPageContent() {
             columns={columns}
             onAddColumn={handleAddColumn}
             onMoveTask={({ taskId, fromColumnId, toColumnId, toIndex }) => {
-              const token = accessToken;
+              const token = accessTokenRef.current;
               const boardId = activeBoardId;
               const cols = columnsRef.current;
               if (!token || !boardId || !cols) return;
@@ -483,6 +503,15 @@ export default function BoardsPageContent() {
               toCol.tasks.splice(safeIndex, 0, moved);
 
               setColumns(next);
+              setViewTask((prev) => {
+                if (!prev || prev.task.id !== taskId) return prev;
+                return {
+                  ...prev,
+                  statusLabel: toCol.title,
+                  columnId: toCol.id,
+                  taskIndex: safeIndex,
+                };
+              });
 
               const updates: { taskId: string; columnId: string; position: number }[] =
                 [];
@@ -511,11 +540,11 @@ export default function BoardsPageContent() {
         open={viewTask !== null}
         onClose={() => setViewTask(null)}
         task={viewTask?.task ?? null}
-        statusLabel={viewTask?.statusLabel ?? ""}
+        statusLabel={viewTaskStatusFromColumn || viewTask?.statusLabel || "Todo"}
         statusOptions={["Todo", "Doing", "Done"]}
         onStatusChange={handleTaskStatusChange}
         onToggleSubtask={(subtaskId, nextDone) => {
-          const token = accessToken;
+          const token = accessTokenRef.current;
           const boardId = activeBoardId;
           if (!token || !boardId) return;
 
@@ -569,7 +598,7 @@ export default function BoardsPageContent() {
         onClose={() => setEditTaskOpen(false)}
         onSave={handleSaveEditTask}
         task={viewTask?.task ?? null}
-        status={viewTask?.statusLabel ?? "Todo"}
+        status={viewTaskStatusFromColumn || viewTask?.statusLabel || "Todo"}
         statusOptions={statusOptionsForAdd}
       />
       <DeleteTaskModal

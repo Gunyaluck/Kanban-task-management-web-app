@@ -46,7 +46,7 @@ export default function BoardsSidebar({
               key={b.id}
               type="button"
               onClick={() => onBoardSelect(b.id)}
-              className={`flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold transition-colors ${
+              className={`flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold transition-colors hover:cursor-pointer ${
                 active
                   ? "bg-(--color-primary) text-white"
                   : "text-muted hover:bg-(--color-surface-2) hover:text-(--color-text)"
@@ -68,7 +68,7 @@ export default function BoardsSidebar({
         <button
           type="button"
           onClick={onCreateBoardClick}
-          className="mt-1 flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold text-(--color-primary) transition-colors hover:bg-(--color-surface-2)"
+          className="mt-1 flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold text-(--color-primary) transition-colors hover:bg-(--color-surface-2) hover:cursor-pointer"
         >
           <span aria-hidden>+</span>
           <span> Create New Board</span>
@@ -81,7 +81,7 @@ export default function BoardsSidebar({
             await supabase.auth.signOut();
             router.push("/login");
           }}
-          className="mt-1 flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold text-(--color-danger) transition-colors hover:bg-(--color-surface-2)"
+          className="mt-1 flex items-center gap-3 rounded-r-full py-3 pr-4 pl-6 text-sm font-bold text-(--color-danger) transition-colors hover:bg-(--color-surface-2) hover:cursor-pointer"
         >
           <span>Logout</span>
         </button>
@@ -94,7 +94,7 @@ export default function BoardsSidebar({
       <button
         type="button"
         onClick={onHideSidebar}
-        className="text-muted flex items-center gap-3 px-6 py-4 text-sm font-bold transition-colors hover:text-(--color-text)"
+        className="text-muted flex items-center gap-3 px-6 py-4 text-sm font-bold transition-colors hover:text-(--color-text) hover:cursor-pointer"
       >
         <img
           src="/icons/icon-hide-sidebar.svg"

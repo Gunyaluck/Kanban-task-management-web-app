@@ -177,7 +177,7 @@ export default function RegisterPage() {
                     alt={showPassword ? "Hide password" : "Show password"}
                     width={18}
                     height={16}
-                    className="h-4 w-[18px]"
+                    className="h-4 w-[18px] hover:cursor-pointer"
                   />
                 </button>
               </div>
@@ -201,7 +201,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              className="btn btn-l btn-primary hover:btn-primary-hover w-full"
+              className="btn btn-l btn-primary hover:btn-primary-hover w-full mx-auto hover:cursor-pointer"
               disabled={loading}
             >
               {loading ? "Creating…" : "Create account"}
