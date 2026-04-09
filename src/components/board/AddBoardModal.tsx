@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 export type AddBoardPayload = {
   boardName: string;
-  columnTitles: string[];
+  columns: { title: string; dotClassName: string }[];
 };
 
 type AddBoardModalProps = {
@@ -16,13 +16,27 @@ type AddBoardModalProps = {
 const inputClassName =
   "w-full rounded border border-token bg-(--color-surface) px-4 py-3 text-sm font-medium text-(--color-text) placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2";
 
+const DOT_COLORS: { id: string; label: string; dotClassName: string }[] = [
+  { id: "gray", label: "Gray", dotClassName: "bg-(--color-text-muted)" },
+  { id: "cyan", label: "Cyan", dotClassName: "bg-(--col-dot-cyan)" },
+  { id: "purple", label: "Purple", dotClassName: "bg-(--col-dot-purple)" },
+  { id: "green", label: "Green", dotClassName: "bg-(--col-dot-green)" },
+  { id: "orange", label: "Orange", dotClassName: "bg-(--col-dot-orange)" },
+  { id: "pink", label: "Pink", dotClassName: "bg-(--col-dot-pink)" },
+];
+
+type ColumnDraft = { title: string; dotClassName: string };
+
 export default function AddBoardModal({
   open,
   onClose,
   onCreate,
 }: AddBoardModalProps) {
   const [name, setName] = useState("");
-  const [colDrafts, setColDrafts] = useState<string[]>(["Todo", "Doing"]);
+  const [colDrafts, setColDrafts] = useState<ColumnDraft[]>([
+    { title: "Todo", dotClassName: "bg-(--col-dot-cyan)" },
+    { title: "Doing", dotClassName: "bg-(--col-dot-purple)" },
+  ]);
 
   useEffect(() => {
     if (!open) {
@@ -50,7 +64,11 @@ export default function AddBoardModal({
       return;
     }
     setName("");
-    setColDrafts(["Todo", "Doing", "Done"]);
+    setColDrafts([
+      { title: "Todo", dotClassName: "bg-(--col-dot-cyan)" },
+      { title: "Doing", dotClassName: "bg-(--col-dot-purple)" },
+      { title: "Done", dotClassName: "bg-(--col-dot-green)" },
+    ]);
   }, [open]);
 
   if (!open) {
@@ -63,18 +81,31 @@ export default function AddBoardModal({
     if (!trimmedName) {
       return;
     }
-    const titles = colDrafts.map((t) => t.trim()).filter(Boolean);
-    onCreate({ boardName: trimmedName, columnTitles: titles });
+    const columns = colDrafts
+      .map((c) => ({ title: c.title.trim(), dotClassName: c.dotClassName }))
+      .filter((c) => Boolean(c.title));
+    onCreate({ boardName: trimmedName, columns });
   };
 
   const addColumnRow = () => {
-    setColDrafts((rows) => [...rows, ""]);
+    setColDrafts((rows) => [
+      ...rows,
+      { title: "", dotClassName: DOT_COLORS[0]!.dotClassName },
+    ]);
   };
 
   const updateColumnRow = (index: number, value: string) => {
     setColDrafts((rows) => {
       const next = [...rows];
-      next[index] = value;
+      next[index] = { ...next[index]!, title: value };
+      return next;
+    });
+  };
+
+  const updateColumnDotColor = (index: number, dotClassName: string) => {
+    setColDrafts((rows) => {
+      const next = [...rows];
+      next[index] = { ...next[index]!, dotClassName };
       return next;
     });
   };
@@ -131,13 +162,41 @@ export default function AddBoardModal({
                 <li key={index} className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={row}
+                    value={row.title}
                     onChange={(event) =>
                       updateColumnRow(index, event.target.value)
                     }
                     className={`${inputClassName} flex-1`}
                     aria-label={`Board column ${index + 1}`}
                   />
+                  <label className="sr-only" htmlFor={`add-board-col-color-${index}`}>
+                    Column color {index + 1}
+                  </label>
+                  <div className="relative shrink-0">
+                    <select
+                      id={`add-board-col-color-${index}`}
+                      value={row.dotClassName}
+                      onChange={(e) => updateColumnDotColor(index, e.target.value)}
+                      className="h-10 w-[116px] appearance-none rounded border border-token bg-(--color-surface) pl-10 pr-8 text-sm font-medium text-(--color-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2"
+                      aria-label={`Column color ${index + 1}`}
+                    >
+                      {DOT_COLORS.map((c) => (
+                        <option key={c.id} value={c.dotClassName}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full ${row.dotClassName}`}
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+                    >
+                      ▼
+                    </span>
+                  </div>
                   <button
                     type="button"
                     className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80"

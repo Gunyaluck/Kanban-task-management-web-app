@@ -27,6 +27,7 @@ type ViewTaskModalProps = {
   statusLabel: string;
   statusOptions?: string[];
   onStatusChange?: (nextStatus: string) => void;
+  onToggleSubtask?: (subtaskId: string, nextDone: boolean) => void;
   onEditTask?: () => void;
   onDeleteTask?: () => void;
 };
@@ -38,6 +39,7 @@ export default function ViewTaskModal({
   statusLabel,
   statusOptions = ["Todo", "Doing", "Done"],
   onStatusChange,
+  onToggleSubtask,
   onEditTask,
   onDeleteTask,
 }: ViewTaskModalProps) {
@@ -151,7 +153,14 @@ export default function ViewTaskModal({
               <ul className="flex flex-col gap-2">
                 {subtasks.map((item) => (
                   <li key={item.id}>
-                    <div className="flex items-center gap-4 rounded-sm bg-[#F4F7FD] px-3 py-3 dark:bg-(--color-surface-2)">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-4 rounded-sm bg-[#F4F7FD] px-3 py-3 text-left transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 dark:bg-(--color-surface-2)"
+                      role="checkbox"
+                      aria-checked={item.done}
+                      aria-label={`Toggle subtask: ${item.label}`}
+                      onClick={() => onToggleSubtask?.(item.id, !item.done)}
+                    >
                       <span
                         className={`grid h-4 w-4 shrink-0 place-items-center rounded border-2 ${
                           item.done
@@ -163,7 +172,7 @@ export default function ViewTaskModal({
                         {item.done ? (
                           <img
                             src="/icons/icon-check.svg"
-                            alt="Completed"
+                            alt="Completed subtask"
                             width={10}
                             height={8}
                             className="h-2 w-2.5"
@@ -179,7 +188,7 @@ export default function ViewTaskModal({
                       >
                         {item.label}
                       </span>
-                    </div>
+                    </button>
                   </li>
                 ))}
               </ul>

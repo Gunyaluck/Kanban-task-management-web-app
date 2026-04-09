@@ -3,10 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { ColumnDefinition } from "@/components/boards/boardData";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type EditBoardPayload = {
   boardName: string;
-  columnTitles: string[];
+  columns: { title: string; dotClassName: string }[];
 };
 
 type EditBoardModalProps = {
@@ -20,6 +27,17 @@ type EditBoardModalProps = {
 const inputClassName =
   "w-full rounded border border-token bg-(--color-surface) px-4 py-3 text-sm font-medium text-(--color-text) placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2";
 
+const DOT_COLORS: { id: string; label: string; dotClassName: string }[] = [
+  { id: "gray", label: "Gray", dotClassName: "bg-(--color-text-muted)" },
+  { id: "cyan", label: "Cyan", dotClassName: "bg-(--col-dot-cyan)" },
+  { id: "purple", label: "Purple", dotClassName: "bg-(--col-dot-purple)" },
+  { id: "green", label: "Green", dotClassName: "bg-(--col-dot-green)" },
+  { id: "orange", label: "Orange", dotClassName: "bg-(--col-dot-orange)" },
+  { id: "pink", label: "Pink", dotClassName: "bg-(--col-dot-pink)" },
+];
+
+type ColumnDraft = { title: string; dotClassName: string };
+
 export default function EditBoardModal({
   open,
   onClose,
@@ -28,9 +46,17 @@ export default function EditBoardModal({
   columns,
 }: EditBoardModalProps) {
   const [name, setName] = useState(boardName);
-  const [colDrafts, setColDrafts] = useState<string[]>([]);
+  const [colDrafts, setColDrafts] = useState<ColumnDraft[]>([]);
 
-  const initialCols = useMemo(() => columns?.map((c) => c.title) ?? [], [columns]);
+  const getDotLabel = (dotClassName: string) =>
+    DOT_COLORS.find((c) => c.dotClassName === dotClassName)?.label ?? "Gray";
+
+  const initialCols = useMemo(
+    () =>
+      columns?.map((c) => ({ title: c.title, dotClassName: c.dotClassName })) ??
+      [],
+    [columns]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -71,18 +97,34 @@ export default function EditBoardModal({
     if (!trimmedName) {
       return;
     }
-    const titles = colDrafts.map((t) => t.trim()).filter(Boolean);
-    onSave({ boardName: trimmedName, columnTitles: titles });
+    const cols = colDrafts
+      .map((c) => ({
+        title: c.title.trim(),
+        dotClassName: c.dotClassName || DOT_COLORS[0]!.dotClassName,
+      }))
+      .filter((c) => Boolean(c.title));
+    onSave({ boardName: trimmedName, columns: cols });
   };
 
   const addColumnRow = () => {
-    setColDrafts((rows) => [...rows, ""]);
+    setColDrafts((rows) => [
+      ...rows,
+      { title: "", dotClassName: DOT_COLORS[0]!.dotClassName },
+    ]);
   };
 
   const updateColumnRow = (index: number, value: string) => {
     setColDrafts((rows) => {
       const next = [...rows];
-      next[index] = value;
+      next[index] = { ...next[index]!, title: value };
+      return next;
+    });
+  };
+
+  const updateColumnDotColor = (index: number, dotClassName: string) => {
+    setColDrafts((rows) => {
+      const next = [...rows];
+      next[index] = { ...next[index]!, dotClassName };
       return next;
     });
   };
@@ -138,13 +180,45 @@ export default function EditBoardModal({
                 <li key={index} className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={row}
+                    value={row.title}
                     onChange={(event) =>
                       updateColumnRow(index, event.target.value)
                     }
                     className={`${inputClassName} flex-1`}
                     aria-label={`Board column ${index + 1}`}
                   />
+                  <Select
+                    value={row.dotClassName}
+                    onValueChange={(value) => updateColumnDotColor(index, value)}
+                  >
+                    <SelectTrigger
+                      className="h-10 w-[140px] shrink-0 px-3 py-2"
+                      aria-label={`Column color ${index + 1}`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className={`h-3 w-3 shrink-0 rounded-full ${row.dotClassName}`}
+                        />
+                        <SelectValue placeholder="Color">
+                          <span className="truncate">{getDotLabel(row.dotClassName)}</span>
+                        </SelectValue>
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      {DOT_COLORS.map((c) => (
+                        <SelectItem key={c.id} value={c.dotClassName}>
+                          <span className="flex items-center gap-2">
+                            <span
+                              aria-hidden="true"
+                              className={`h-3 w-3 rounded-full ${c.dotClassName}`}
+                            />
+                            <span>{c.label}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <button
                     type="button"
                     className="text-muted grid h-10 w-10 shrink-0 place-items-center rounded hover:opacity-80"

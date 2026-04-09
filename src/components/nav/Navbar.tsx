@@ -33,7 +33,7 @@ export default function MobileNavbar({
   const [boardsMenuOpen, setBoardsMenuOpen] = useState(false);
 
   return (
-    <header className="surface flex h-[64px] w-full items-center justify-between px-4 py-3">
+    <header className="surface flex h-[64px] md:h-[97px] w-full items-center justify-between px-4 py-3">
       <div className="flex min-w-0 items-center gap-4">
         {/* Mobile: logo + boards dropdown */}
         <div className={showDesktopBrand ? "flex items-center gap-3" : ""}>

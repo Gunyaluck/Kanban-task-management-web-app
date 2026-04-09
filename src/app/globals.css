@@ -44,6 +44,13 @@
 
   /* Shadows */
   --shadow-elev-1: 0 4px 6px rgba(54, 78, 126, 0.1015);
+
+  /* Column dot colors (fixed palette) */
+  --col-dot-cyan: #49c4e5;
+  --col-dot-purple: #8471f2;
+  --col-dot-green: #67e3ae;
+  --col-dot-orange: #f6c15d;
+  --col-dot-pink: #d746ff;
 }
 
 .dark {
