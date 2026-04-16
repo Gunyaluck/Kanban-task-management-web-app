@@ -6,6 +6,9 @@ import { useState } from "react";
 import ThemeSwitch from "@/components/ui/ThemeSwitch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+const DEMO_EMAIL = "testuser@gmail.com";
+const DEMO_PASSWORD = "12345678";
+
 const inputClassName =
   "w-full rounded border border-token bg-(--color-surface) px-4 py-3 text-sm font-medium text-(--color-text) placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2";
 
@@ -22,6 +25,7 @@ export default function LoginPage() {
     { email: false, password: false }
   );
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const emailError =
@@ -35,6 +39,7 @@ export default function LoginPage() {
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setTouched({ email: true, password: true });
 
     if (emailError || passwordError) {
@@ -58,6 +63,25 @@ export default function LoginPage() {
     }
   };
 
+  const fillDemo = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setTouched({ email: false, password: false });
+    setError(null);
+    setNotice("Demo account filled. You can sign in now.");
+  };
+
+  const copyToClipboard = async (value: string, label: string) => {
+    setError(null);
+    setNotice(null);
+    try {
+      await navigator.clipboard.writeText(value);
+      setNotice(`${label} copied.`);
+    } catch {
+      setError("Copy failed. Please copy manually.");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-(--color-bg) px-4 py-10 text-(--color-text) flex flex-col items-center gap-6">
       <div className="mx-auto w-full max-w-[480px] ">
@@ -75,6 +99,60 @@ export default function LoginPage() {
           <p className="text-muted mt-2 text-sm font-medium leading-[23px]">
             Welcome back. Sign in to continue.
           </p>
+
+          <div className="mt-6 rounded-lg border border-token bg-(--color-bg) p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-bold">Demo account</p>
+                <p className="text-muted mt-1 text-xs font-medium leading-5">
+                  Use this account to explore the app quickly.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer whitespace-nowrap"
+                onClick={fillDemo}
+              >
+                Use demo
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <div className="w-[400px] flex items-center justify-between gap-3 rounded-md border border-token bg-(--color-surface) px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
+                    Email
+                  </p>
+                  <p className="truncate text-sm font-medium">{DEMO_EMAIL}</p>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs w-[150px] h-[36px] btn btn-secondary hover:cursor-pointer"
+                  onClick={() => copyToClipboard(DEMO_EMAIL, "Email")}
+                >
+                  Copy
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-md border border-token bg-(--color-surface) px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
+                    Password
+                  </p>
+                  <p className="truncate text-sm font-medium">
+                    {showPassword ? DEMO_PASSWORD : "••••••••"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer"
+                  onClick={() => copyToClipboard(DEMO_PASSWORD, "Password")}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4 ">
             <div className="flex flex-col gap-2">
@@ -143,6 +221,12 @@ export default function LoginPage() {
               ) : null}
             </div>
 
+            {notice ? (
+              <p className="text-(--color-primary) text-sm font-medium">
+                {notice}
+              </p>
+            ) : null}
+
             {error ? (
               <p className="text-(--color-danger) text-sm font-medium">
                 {error}
@@ -170,10 +254,10 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="flex justify-end">
-          <div className="w-full">
-            <ThemeSwitch />
-          </div>
+        <div className="w-full">
+          <ThemeSwitch />
         </div>
+      </div>
     </main>
   );
 }
