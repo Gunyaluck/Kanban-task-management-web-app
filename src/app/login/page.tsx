@@ -100,60 +100,6 @@ export default function LoginPage() {
             Welcome back. Sign in to continue.
           </p>
 
-          <div className="mt-6 rounded-lg border border-token bg-(--color-bg) p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-bold">Demo account</p>
-                <p className="text-muted mt-1 text-xs font-medium leading-5">
-                  Use this account to explore the app quickly.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer whitespace-nowrap"
-                onClick={fillDemo}
-              >
-                Use demo
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <div className="w-[400px] flex items-center justify-between gap-3 rounded-md border border-token bg-(--color-surface) px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
-                    Email
-                  </p>
-                  <p className="truncate text-sm font-medium">{DEMO_EMAIL}</p>
-                </div>
-                <button
-                  type="button"
-                  className="text-xs w-[150px] h-[36px] btn btn-secondary hover:cursor-pointer"
-                  onClick={() => copyToClipboard(DEMO_EMAIL, "Email")}
-                >
-                  Copy
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-md border border-token bg-(--color-surface) px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
-                    Password
-                  </p>
-                  <p className="truncate text-sm font-medium">
-                    {showPassword ? DEMO_PASSWORD : "••••••••"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer"
-                  onClick={() => copyToClipboard(DEMO_PASSWORD, "Password")}
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          </div>
-
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4 ">
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-muted text-xs font-bold">
@@ -219,6 +165,60 @@ export default function LoginPage() {
                   {passwordError}
                 </p>
               ) : null}
+            </div>
+
+            <div className="mt-2 rounded-lg border border-token bg-(--color-bg) p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold">Demo account</p>
+                  <p className="text-muted mt-1 text-xs font-medium leading-5">
+                    Use this account to explore the app quickly.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer whitespace-nowrap"
+                  onClick={fillDemo}
+                >
+                  Use demo
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <div className="w-[400px] flex items-center justify-between gap-3 rounded-md border border-token bg-(--color-surface) px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
+                      Email
+                    </p>
+                    <p className="truncate text-sm font-medium">{DEMO_EMAIL}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs w-[150px] h-[36px] btn btn-secondary hover:cursor-pointer"
+                    onClick={() => copyToClipboard(DEMO_EMAIL, "Email")}
+                  >
+                    Copy
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-md border border-token bg-(--color-surface) px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
+                      Password
+                    </p>
+                    <p className="truncate text-sm font-medium">
+                      {showPassword ? DEMO_PASSWORD : "••••••••"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer"
+                    onClick={() => copyToClipboard(DEMO_PASSWORD, "Password")}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
             </div>
 
             {notice ? (
