@@ -191,11 +191,18 @@ export default function LoginPage() {
                     <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
                       Email
                     </p>
-                    <p className="truncate text-sm font-medium">{DEMO_EMAIL}</p>
+                      <p
+                        id="demo-email-value"
+                        className="truncate text-sm font-medium"
+                      >
+                        {DEMO_EMAIL}
+                      </p>
                   </div>
                   <button
                     type="button"
                     className="text-xs w-[150px] h-[36px] btn btn-secondary hover:cursor-pointer"
+                      aria-label="Copy demo email"
+                      aria-describedby="demo-email-value"
                     onClick={() => copyToClipboard(DEMO_EMAIL, "Email")}
                   >
                     Copy
@@ -207,13 +214,18 @@ export default function LoginPage() {
                     <p className="text-muted text-[11px] font-bold uppercase tracking-[0.6px]">
                       Password
                     </p>
-                    <p className="truncate text-sm font-medium">
+                    <p
+                      id="demo-password-value"
+                      className="truncate text-sm font-medium"
+                    >
                       {showPassword ? DEMO_PASSWORD : "••••••••"}
                     </p>
                   </div>
                   <button
                     type="button"
                     className="text-xs btn w-[150px] h-[36px] btn-secondary hover:cursor-pointer"
+                    aria-label="Copy demo password"
+                    aria-describedby="demo-password-value"
                     onClick={() => copyToClipboard(DEMO_PASSWORD, "Password")}
                   >
                     Copy
