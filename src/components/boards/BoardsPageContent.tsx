@@ -423,6 +423,29 @@ export default function BoardsPageContent() {
     });
   }, [refreshActiveBoard, refreshBoards]);
 
+  const handleCreateFirstBoard = useCallback(() => {
+    const token = accessTokenRef.current;
+    if (!token) return;
+
+    setLoadError(null);
+    (async () => {
+      await createBoard(token, { name: "My First Board" });
+      const nextBoards = await refreshBoards(token);
+      const nextActive = nextBoards[0]?.id ?? null;
+      setActiveBoardId(nextActive);
+      setViewTask(null);
+      if (nextActive) {
+        await refreshActiveBoard(token, nextActive);
+      } else {
+        setColumns([]);
+      }
+    })().catch((e) => {
+      setLoadError(
+        e instanceof Error ? e.message : "Failed to create your first board"
+      );
+    });
+  }, [refreshActiveBoard, refreshBoards]);
+
   return (
     <div className="flex min-h-screen w-full">
       {sidebarOpen ? (
@@ -477,8 +500,10 @@ export default function BoardsPageContent() {
               </p>
             </div>
           </section>
+        ) : boards.length === 0 ? (
+          <BoardEmptyState variant="no-boards" onCreateBoard={handleCreateFirstBoard} />
         ) : columns === null || columns.length === 0 ? (
-          <BoardEmptyState onAddColumn={handleAddColumn} />
+          <BoardEmptyState variant="no-columns" onAddColumn={handleAddColumn} />
         ) : (
           <KanbanBoard
             columns={columns}
