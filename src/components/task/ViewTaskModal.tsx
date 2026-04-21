@@ -24,9 +24,9 @@ type ViewTaskModalProps = {
   open: boolean;
   onClose: () => void;
   task: BoardTask | null;
-  statusLabel: string;
-  statusOptions?: string[];
-  onStatusChange?: (nextStatus: string) => void;
+  columnId: string;
+  statusOptions?: { value: string; label: string }[];
+  onStatusChange?: (nextColumnId: string) => void;
   onToggleSubtask?: (subtaskId: string, nextDone: boolean) => void;
   onEditTask?: () => void;
   onDeleteTask?: () => void;
@@ -36,8 +36,8 @@ export default function ViewTaskModal({
   open,
   onClose,
   task,
-  statusLabel,
-  statusOptions = ["Todo", "Doing", "Done"],
+  columnId,
+  statusOptions = [],
   onStatusChange,
   onToggleSubtask,
   onEditTask,
@@ -65,11 +65,11 @@ export default function ViewTaskModal({
   }, [open, onClose]);
 
   const selectOptions = useMemo(() => {
-    if (statusLabel && !statusOptions.includes(statusLabel)) {
-      return [statusLabel, ...statusOptions];
+    if (columnId && !statusOptions.some((o) => o.value === columnId)) {
+      return [{ value: columnId, label: "Current" }, ...statusOptions];
     }
     return statusOptions;
-  }, [statusLabel, statusOptions]);
+  }, [columnId, statusOptions]);
 
   if (!open || task === null) {
     return null;
@@ -203,7 +203,7 @@ export default function ViewTaskModal({
               Current Status
             </label>
             <Select
-              value={statusLabel}
+              value={columnId}
               onValueChange={(next) => onStatusChange?.(next)}
               disabled={!onStatusChange}
             >
@@ -212,8 +212,8 @@ export default function ViewTaskModal({
               </SelectTrigger>
               <SelectContent>
                 {selectOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
-                    {opt}
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>

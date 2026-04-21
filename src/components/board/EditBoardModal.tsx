@@ -46,6 +46,7 @@ export default function EditBoardModal({
   columns,
 }: EditBoardModalProps) {
   const [name, setName] = useState(boardName);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [colDrafts, setColDrafts] = useState<ColumnDraft[]>([]);
 
   const getDotLabel = (dotClassName: string) =>
@@ -84,6 +85,7 @@ export default function EditBoardModal({
       return;
     }
     setName(boardName);
+    setSubmitAttempted(false);
     setColDrafts(initialCols);
   }, [open, boardName, initialCols]);
 
@@ -93,6 +95,7 @@ export default function EditBoardModal({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setSubmitAttempted(true);
     const trimmedName = name.trim();
     if (!trimmedName) {
       return;
@@ -170,7 +173,21 @@ export default function EditBoardModal({
               onChange={(event) => setName(event.target.value)}
               className={inputClassName}
               autoComplete="off"
+              aria-invalid={submitAttempted && !name.trim() ? true : undefined}
+              aria-describedby={
+                submitAttempted && !name.trim()
+                  ? "edit-board-name-error"
+                  : undefined
+              }
             />
+            {submitAttempted && !name.trim() ? (
+              <p
+                id="edit-board-name-error"
+                className="text-(--color-danger) text-sm font-medium"
+              >
+                Board name is required.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-3">

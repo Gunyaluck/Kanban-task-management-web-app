@@ -34,7 +34,12 @@ export default function LoginPage() {
       : !isValidEmail(email.trim())
         ? "Please enter a valid email address."
         : null;
-  const passwordError = !password ? "Password is required." : null;
+  const passwordError =
+    !password
+      ? "Password is required."
+      : password.length < 8
+        ? "Password must be at least 8 characters."
+        : null;
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
