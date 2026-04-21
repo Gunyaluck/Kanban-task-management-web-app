@@ -15,16 +15,18 @@ export type EditTaskPayload = {
   title: string;
   description: string;
   subtaskLabels: string[];
-  status: string;
+  columnId: string;
 };
+
+export type StatusOption = { value: string; label: string };
 
 type EditTaskModalProps = {
   open: boolean;
   onClose: () => void;
   onSave: (payload: EditTaskPayload) => void;
   task: BoardTask | null;
-  status: string;
-  statusOptions?: string[];
+  columnId: string;
+  statusOptions?: StatusOption[];
 };
 
 const inputClassName =
@@ -45,45 +47,32 @@ export default function EditTaskModal({
   onClose,
   onSave,
   task,
-  status,
-  statusOptions = ["Todo", "Doing", "Done"],
+  columnId,
+  statusOptions = [],
 }: EditTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subtaskDrafts, setSubtaskDrafts] = useState<string[]>([]);
-  const [nextStatus, setNextStatus] = useState(statusOptions[0] ?? "Todo");
-
-  const normalizeStatus = (value: string) => value.trim();
-
-  const normalizedStatusOptions = useMemo(() => {
-    const base = statusOptions.map(normalizeStatus).filter(Boolean);
-    const current = normalizeStatus(status || "");
-    const all = current && !base.includes(current) ? [current, ...base] : base;
-    // de-dupe
-    return Array.from(new Set(all));
-  }, [status, statusOptions]);
+  const [nextColumnId, setNextColumnId] = useState(
+    statusOptions[0]?.value ?? ""
+  );
 
   const selectOptions = useMemo(() => {
-    const next = normalizeStatus(nextStatus || "");
-    if (next && !normalizedStatusOptions.includes(next)) {
-      return [next, ...normalizedStatusOptions];
+    if (columnId && !statusOptions.some((o) => o.value === columnId)) {
+      return [{ value: columnId, label: "Current" }, ...statusOptions];
     }
-    return normalizedStatusOptions;
-  }, [nextStatus, normalizedStatusOptions]);
+    return statusOptions;
+  }, [columnId, statusOptions]);
 
-  const safeStatusValue = useMemo(() => {
-    const current = normalizeStatus(status || "");
-    if (current && selectOptions.includes(current)) {
-      return current;
+  const effectiveColumnId = useMemo(() => {
+    if (nextColumnId && selectOptions.some((o) => o.value === nextColumnId)) {
+      return nextColumnId;
     }
-    return selectOptions[0] || "Todo";
-  }, [selectOptions, status]);
-
-  const effectiveStatusValue = useMemo(() => {
-    const next = normalizeStatus(nextStatus || "");
-    if (next && selectOptions.includes(next)) return next;
-    return safeStatusValue;
-  }, [nextStatus, safeStatusValue, selectOptions]);
+    if (columnId && selectOptions.some((o) => o.value === columnId)) {
+      return columnId;
+    }
+    return selectOptions[0]?.value ?? "";
+  }, [nextColumnId, selectOptions, columnId]);
 
   useEffect(() => {
     if (!open) {
@@ -113,8 +102,8 @@ export default function EditTaskModal({
     setTitle(task.title);
     setDescription(task.description ?? "");
     setSubtaskDrafts(taskToDraftSubtasks(task));
-    setNextStatus(normalizeStatus(status || selectOptions[0] || "Todo"));
-  }, [open, task, status, selectOptions]);
+    setNextColumnId(columnId || selectOptions[0]?.value || "");
+  }, [open, task, columnId, selectOptions]);
 
   if (!open || !task) {
     return null;
@@ -131,7 +120,7 @@ export default function EditTaskModal({
       title: trimmedTitle,
       description: description.trim(),
       subtaskLabels: labels,
-      status: nextStatus,
+      columnId: nextColumnId,
     });
   };
 
@@ -259,7 +248,7 @@ export default function EditTaskModal({
 
           <div className="flex flex-col gap-2">
             <span className="text-muted text-xs font-bold">Status</span>
-            <Select value={effectiveStatusValue} onValueChange={setNextStatus}>
+            <Select value={effectiveColumnId} onValueChange={setNextColumnId}>
               <SelectTrigger
                 id="edit-task-status"
                 className="w-full hover:cursor-pointer"
@@ -269,8 +258,8 @@ export default function EditTaskModal({
               </SelectTrigger>
               <SelectContent>
                 {selectOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
-                    {opt}
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>

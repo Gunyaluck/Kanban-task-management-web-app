@@ -33,6 +33,7 @@ export default function AddBoardModal({
   onCreate,
 }: AddBoardModalProps) {
   const [name, setName] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [colDrafts, setColDrafts] = useState<ColumnDraft[]>([
     { title: "Todo", dotClassName: "bg-(--col-dot-cyan)" },
     { title: "Doing", dotClassName: "bg-(--col-dot-purple)" },
@@ -64,6 +65,7 @@ export default function AddBoardModal({
       return;
     }
     setName("");
+    setSubmitAttempted(false);
     setColDrafts([
       { title: "Todo", dotClassName: "bg-(--col-dot-cyan)" },
       { title: "Doing", dotClassName: "bg-(--col-dot-purple)" },
@@ -77,6 +79,7 @@ export default function AddBoardModal({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setSubmitAttempted(true);
     const trimmedName = name.trim();
     if (!trimmedName) {
       return;
@@ -152,7 +155,21 @@ export default function AddBoardModal({
               placeholder="e.g. Web Design"
               className={inputClassName}
               autoComplete="off"
+              aria-invalid={submitAttempted && !name.trim() ? true : undefined}
+              aria-describedby={
+                submitAttempted && !name.trim()
+                  ? "add-board-name-error"
+                  : undefined
+              }
             />
+            {submitAttempted && !name.trim() ? (
+              <p
+                id="add-board-name-error"
+                className="text-(--color-danger) text-sm font-medium"
+              >
+                Board name is required.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-3">

@@ -14,14 +14,16 @@ export type NewTaskPayload = {
   title: string;
   description: string;
   subtaskLabels: string[];
-  status: string;
+  columnId: string;
 };
+
+export type StatusOption = { value: string; label: string };
 
 type AddTaskModalProps = {
   open: boolean;
   onClose: () => void;
   onCreate: (payload: NewTaskPayload) => void;
-  statusOptions?: string[];
+  statusOptions?: StatusOption[];
 };
 
 const inputClassName =
@@ -31,12 +33,13 @@ export default function AddTaskModal({
   open,
   onClose,
   onCreate,
-  statusOptions = ["Todo", "Doing", "Done"],
+  statusOptions = [],
 }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subtaskDrafts, setSubtaskDrafts] = useState<string[]>([]);
-  const [status, setStatus] = useState("Todo");
+  const [columnId, setColumnId] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -66,8 +69,9 @@ export default function AddTaskModal({
     setTitle("");
     setDescription("");
     setSubtaskDrafts([]);
-    setStatus("Todo");
-  }, [open]);
+    setColumnId(statusOptions[0]?.value ?? "");
+    setSubmitAttempted(false);
+  }, [open, statusOptions]);
 
   if (!open) {
     return null;
@@ -75,8 +79,12 @@ export default function AddTaskModal({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setSubmitAttempted(true);
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
+      return;
+    }
+    if (!columnId) {
       return;
     }
 
@@ -85,7 +93,7 @@ export default function AddTaskModal({
       title: trimmedTitle,
       description: description.trim(),
       subtaskLabels: labels,
-      status,
+      columnId,
     });
   };
 
@@ -143,7 +151,19 @@ export default function AddTaskModal({
               placeholder="e.g. Take coffee break"
               className={inputClassName}
               autoComplete="off"
+              aria-invalid={submitAttempted && !title.trim() ? true : undefined}
+              aria-describedby={
+                submitAttempted && !title.trim() ? "add-task-title-error" : undefined
+              }
             />
+            {submitAttempted && !title.trim() ? (
+              <p
+                id="add-task-title-error"
+                className="text-(--color-danger) text-sm font-medium"
+              >
+                Title is required.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -211,8 +231,8 @@ export default function AddTaskModal({
           <div className="flex flex-col gap-2">
             <span className="text-muted text-xs font-bold">Status</span>
             <Select
-              value={status}
-              onValueChange={setStatus}
+              value={columnId}
+              onValueChange={setColumnId}
             >
               <SelectTrigger
                 id="add-task-status"
@@ -223,8 +243,8 @@ export default function AddTaskModal({
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
-                    {opt}
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
