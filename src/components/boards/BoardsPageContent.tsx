@@ -6,7 +6,7 @@ import BoardEmptyState from "./BoardEmptyState";
 import KanbanBoard from "./KanbanBoard";
 import BoardShowSidebarFab from "./BoardShowSidebarFab";
 import AddTaskModal from "@/components/task/AddTaskModal";
-import type { NewTaskPayload } from "@/components/task/AddTaskModal";
+import type { NewTaskPayload, StatusOption } from "@/components/task/AddTaskModal";
 import DeleteTaskModal from "@/components/task/DeleteTaskModal";
 import EditTaskModal from "@/components/task/EditTaskModal";
 import type { EditTaskPayload } from "@/components/task/EditTaskModal";
@@ -45,8 +45,6 @@ type ViewTaskState = {
   columnId: string;
   taskIndex: number;
 };
-
-const CORE_STATUSES = ["Todo", "Doing", "Done"] as const;
 
 function mapBoardToColumns(res: Awaited<ReturnType<typeof getBoard>>) {
   const getDotClassName = (title: string) => {
@@ -210,16 +208,16 @@ export default function BoardsPageContent() {
     });
   }, [accessToken, activeBoardId, refreshActiveBoard]);
 
-  const handleTaskStatusChange = useCallback((nextTitle: string) => {
+  const handleTaskStatusChange = useCallback((nextColumnId: string) => {
     const v = viewTaskRef.current;
     const cols = columnsRef.current;
     const token = accessTokenRef.current;
-    if (!v || !cols || v.statusLabel === nextTitle || !token) {
+    if (!v || !cols || v.columnId === nextColumnId || !token) {
       return;
     }
 
     const taskId = v.task.id;
-    const targetCol = cols.find((c) => c.title === nextTitle);
+    const targetCol = cols.find((c) => c.id === nextColumnId);
     if (!taskId || !targetCol) return;
 
     (async () => {
@@ -263,7 +261,7 @@ export default function BoardsPageContent() {
     }
 
     const taskId = v.task.id;
-    const targetCol = cols.find((c) => c.title === payload.status);
+    const targetCol = cols.find((c) => c.id === payload.columnId);
     if (!taskId || !targetCol) return;
 
     (async () => {
@@ -287,13 +285,14 @@ export default function BoardsPageContent() {
   }, [activeBoardId, refreshActiveBoard]);
 
   const statusOptionsForAdd = useMemo(() => {
-    if (!columns) {
-      return [...CORE_STATUSES];
-    }
-    const extra = columns
-      .map((c) => c.title)
-      .filter((t) => !CORE_STATUSES.includes(t as (typeof CORE_STATUSES)[number]));
-    return [...CORE_STATUSES, ...extra];
+    if (!columns?.length) return [];
+    return columns.map(
+      (c) =>
+        ({
+          value: c.id,
+          label: c.title,
+        }) satisfies StatusOption
+    );
   }, [columns]);
 
   const handleCreateTask = useCallback((payload: NewTaskPayload) => {
@@ -302,7 +301,7 @@ export default function BoardsPageContent() {
     const cols = columnsRef.current;
     if (!token || !boardId || !cols) return;
 
-    const col = cols.find((c) => c.title === payload.status);
+    const col = cols.find((c) => c.id === payload.columnId);
     if (!col) return;
 
     (async () => {
@@ -565,8 +564,8 @@ export default function BoardsPageContent() {
         open={viewTask !== null}
         onClose={() => setViewTask(null)}
         task={viewTask?.task ?? null}
-        statusLabel={viewTaskStatusFromColumn || viewTask?.statusLabel || "Todo"}
-        statusOptions={["Todo", "Doing", "Done"]}
+        columnId={viewTask?.columnId ?? ""}
+        statusOptions={statusOptionsForAdd}
         onStatusChange={handleTaskStatusChange}
         onToggleSubtask={(subtaskId, nextDone) => {
           const token = accessTokenRef.current;
@@ -623,7 +622,7 @@ export default function BoardsPageContent() {
         onClose={() => setEditTaskOpen(false)}
         onSave={handleSaveEditTask}
         task={viewTask?.task ?? null}
-        status={viewTaskStatusFromColumn || viewTask?.statusLabel || "Todo"}
+        columnId={viewTask?.columnId ?? ""}
         statusOptions={statusOptionsForAdd}
       />
       <DeleteTaskModal
