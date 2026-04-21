@@ -153,7 +153,8 @@ export default function LoginPage() {
                         ? "/icons/icon-eye-off.svg"
                         : "/icons/icon-eye.svg"
                     }
-                    alt={showPassword ? "Hide password" : "Show password"}
+                    alt=""
+                    aria-hidden="true"
                     width={18}
                     height={16}
                     className="h-4 w-[18px] hover:cursor-pointer"
